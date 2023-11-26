@@ -12,11 +12,6 @@ Semestre: 2018/2
 """
 
 #!/usr/bin/env python3
-from math import inf as infinity
-from random import choice
-import platform
-import time
-from os import system
 
 """
 Um versão simples do algoritmo MINIMAX para o Jogo da Velha.
@@ -28,6 +23,11 @@ Um versão simples do algoritmo MINIMAX para o Jogo da Velha.
 # tabuleiro = dicionário com os valores em cada posição (x,y)
 # indicando o jogador que movimentou nessa posição.
 # Começa vazio, com zero em todas posições.
+from math import inf as infinity
+from random import choice
+import platform
+import time
+from os import system
 HUMANO = -1
 COMP = +1
 tabuleiro = [
@@ -41,8 +41,10 @@ Funcao para avaliacao heuristica do estado.
 :parametro (estado): o estado atual do tabuleiro
 :returna: +1 se o computador vence; -1 se o HUMANOo vence; 0 empate
  """
+
+
 def avaliacao(estado):
-    
+
     if vitoria(estado, COMP):
         placar = +1
     elif vitoria(estado, HUMANO):
@@ -51,7 +53,10 @@ def avaliacao(estado):
         placar = 0
 
     return placar
+
+
 """ fim avaliacao (estado)------------------------------------- """
+
 
 def vitoria(estado, jogador):
     """
@@ -64,41 +69,52 @@ def vitoria(estado, jogador):
     :return: True se jogador vence
     """
     win_estado = [
-        [estado[0][0], estado[0][1], estado[0][2]], # toda linha 1
-        [estado[1][0], estado[1][1], estado[1][2]], # toda linha 2
-        [estado[2][0], estado[2][1], estado[2][2]], # toda linha 3
-        [estado[0][0], estado[1][0], estado[2][0]], # toda coluna 1
-        [estado[0][1], estado[1][1], estado[2][1]], # toda coluna 2
-        [estado[0][2], estado[1][2], estado[2][2]], # toda coluna 3
-        [estado[0][0], estado[1][1], estado[2][2]], # diagonal principal
-        [estado[2][0], estado[1][1], estado[0][2]], # diagonal secundária
+        [estado[0][0], estado[0][1], estado[0][2]],  # toda linha 1
+        [estado[1][0], estado[1][1], estado[1][2]],  # toda linha 2
+        [estado[2][0], estado[2][1], estado[2][2]],  # toda linha 3
+        [estado[0][0], estado[1][0], estado[2][0]],  # toda coluna 1
+        [estado[0][1], estado[1][1], estado[2][1]],  # toda coluna 2
+        [estado[0][2], estado[1][2], estado[2][2]],  # toda coluna 3
+        [estado[0][0], estado[1][1], estado[2][2]],  # diagonal principal
+        [estado[2][0], estado[1][1], estado[0][2]],  # diagonal secundária
     ]
-    # Se um, dentre todos os alinhamentos pertence um mesmo jogador, 
+    # Se um, dentre todos os alinhamentos pertence um mesmo jogador,
     # então o jogador vence!
     if [jogador, jogador, jogador] in win_estado:
         return True
     else:
         return False
+
+
 """ ---------------------------------------------------------- """
 
 """
 Testa fim de jogo para ambos jogadores de acordo com estado atual
 return: será fim de jogo caso ocorra vitória de um dos jogadores.
 """
+
+
 def fim_jogo(estado):
     return vitoria(estado, HUMANO) or vitoria(estado, COMP)
+
+
 """ ---------------------------------------------------------- """
 
 """
 Verifica celular vazias e insere na lista para informar posições
 ainda permitidas para próximas jogadas.
 """
+
+
 def celulas_vazias(estado):
     celulas = []
     for x, row in enumerate(estado):
         for y, cell in enumerate(row):
-            if cell == 0: celulas.append([x, y])
+            if cell == 0:
+                celulas.append([x, y])
     return celulas
+
+
 """ ---------------------------------------------------------- """
 
 """
@@ -107,11 +123,15 @@ Um movimento é valido se a célula escolhida está vazia.
 :param (y): coordenada Y
 :return: True se o tabuleiro[x][y] está vazio
 """
+
+
 def movimento_valido(x, y):
     if [x, y] in celulas_vazias(tabuleiro):
         return True
     else:
         return False
+
+
 """ ---------------------------------------------------------- """
 
 """
@@ -120,12 +140,16 @@ Executa o movimento no tabuleiro se as coordenadas são válidas
 :param (y): coordenadas Y
 :param (jogador): o jogador da vez
 """
+
+
 def exec_movimento(x, y, jogador):
     if movimento_valido(x, y):
         tabuleiro[x][y] = jogador
         return True
     else:
         return False
+
+
 """ ---------------------------------------------------------- """
 
 """
@@ -136,6 +160,8 @@ mas nunca será nove neste caso (veja a função iavez())
 :param (jogador): um HUMANO ou um Computador
 :return: uma lista com [melhor linha, melhor coluna, melhor placar]
 """
+
+
 def minimax(estado, profundidade, jogador):
 
     # valor-minmax(estado)
@@ -163,23 +189,31 @@ def minimax(estado, profundidade, jogador):
             if placar[2] < melhor[2]:
                 melhor = placar  # valor MIN
     return melhor
+
+
 """ ---------------------------------------------------------- """
 
 """
 Limpa o console para SO Windows
 """
+
+
 def limpa_console():
     os_name = platform.system().lower()
     if 'windows' in os_name:
         system('cls')
     else:
         system('clear')
+
+
 """ ---------------------------------------------------------- """
 
 """
 Imprime o tabuleiro no console
 :param. (estado): estado atual do tabuleiro
 """
+
+
 def exibe_tabuleiro(estado, comp_escolha, humano_escolha):
     print('----------------')
     for row in estado:
@@ -192,6 +226,8 @@ def exibe_tabuleiro(estado, comp_escolha, humano_escolha):
             else:
                 print('|', ' ', '|', end='')
     print('\n----------------')
+
+
 """ ---------------------------------------------------------- """
 
 """
@@ -201,6 +237,8 @@ ou escolhe uma coordenada aleatória.
 :param (humano_escolha): HUMANO escolhe X ou O
 :return:
 """
+
+
 def IA_vez(comp_escolha, humano_escolha):
     profundidade = len(celulas_vazias(tabuleiro))
     if profundidade == 0 or fim_jogo(tabuleiro):
@@ -219,7 +257,10 @@ def IA_vez(comp_escolha, humano_escolha):
 
     exec_movimento(x, y, COMP)
     time.sleep(1)
+
+
 """ ---------------------------------------------------------- """
+
 
 def HUMANO_vez(comp_escolha, humano_escolha):
     """
@@ -258,16 +299,20 @@ def HUMANO_vez(comp_escolha, humano_escolha):
             exit()
         except:
             print('Escolha Inválida!')
+
+
 """ ---------------------------------------------------------- """
 
 """
 Funcao Principal que chama todas funcoes
 """
+
+
 def main():
 
     limpa_console()
-    humano_escolha = '' # Pode ser X ou O
-    comp_escolha = '' # Pode ser X ou O
+    humano_escolha = ''  # Pode ser X ou O
+    comp_escolha = ''  # Pode ser X ou O
     primeiro = ''  # se HUMANO e o primeiro
 
     # HUMANO escolhe X ou O para jogar
@@ -324,6 +369,7 @@ def main():
         print('Empate!')
 
     exit()
+
 
 if __name__ == '__main__':
     main()

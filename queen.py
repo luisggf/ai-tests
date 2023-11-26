@@ -2,9 +2,10 @@
 import itertools
 from scipy import special as sc
 import time
+import csv
 import random
-NUM_QUEENS = 12
-POPULATION_SIZE = 100
+NUM_CITIES = 4
+POPULATION_SIZE = 50
 MIXING_NUMBER = 2
 MUTATION_RATE = 0.01
 
@@ -13,10 +14,10 @@ MUTATION_RATE = 0.01
 def fitness_score(seq):
     score = 0
 
-    for row in range(NUM_QUEENS):
+    for row in range(NUM_CITIES):
         col = seq[row]
 
-        for other_row in range(NUM_QUEENS):
+        for other_row in range(NUM_CITIES):
 
             # queens cannot pair with itself
             if other_row == row:
@@ -43,7 +44,7 @@ def selection(population):
 
     for ind in population:
         # select parents with probability proportional to their fitness score
-        if random.randrange(sc.comb(NUM_QUEENS, 2)*2) < fitness_score(ind):
+        if random.randrange(sc.comb(NUM_CITIES, 2)*2) < fitness_score(ind):
             parents.append(ind)
 
     return parents
@@ -56,7 +57,7 @@ def selection(population):
 def crossover(parents):
 
     # random indexes to to cross states with
-    cross_points = random.sample(range(NUM_QUEENS), MIXING_NUMBER - 1)
+    cross_points = random.sample(range(NUM_CITIES), MIXING_NUMBER - 1)
     offsprings = []
 
     # all permutations of parents
@@ -94,7 +95,7 @@ def crossover(parents):
 def mutate(seq):
     for row in range(len(seq)):
         if random.random() < MUTATION_RATE:
-            seq[row] = random.randrange(NUM_QUEENS)
+            seq[row] = random.randrange(NUM_CITIES)
 
     return seq
 
@@ -105,7 +106,7 @@ def print_found_goal(population, to_print=True):
         score = fitness_score(ind)
         if to_print:
             print(f'{ind}. Score: {score}')
-        if score == sc.comb(NUM_QUEENS, 2):
+        if score == sc.comb(NUM_CITIES, 2):
             if to_print:
                 print('Solution found')
             return True
@@ -144,7 +145,7 @@ def generate_population():
     population = []
 
     for individual in range(POPULATION_SIZE):
-        new = [random.randrange(NUM_QUEENS) for idx in range(NUM_QUEENS)]
+        new = [random.randrange(NUM_CITIES) for idx in range(NUM_CITIES)]
         population.append(new)
 
     return population
@@ -159,10 +160,20 @@ def generate_population():
     population = []
 
     for individual in range(POPULATION_SIZE):
-        new = [random.randrange(NUM_QUEENS) for idx in range(NUM_QUEENS)]
+        new = [random.randrange(NUM_CITIES) for idx in range(NUM_CITIES)]
         population.append(new)
 
     return population
+
+
+def save_to_csv(generation, score, time, num_pop, mutation_rate, n_queens):
+    with open('results.csv', mode='a', newline=f'\n') as file:
+        writer = csv.writer(file)
+        if file.tell() == 0:
+            writer.writerow(['generation',
+                            'score', 'time', 'num_pop', 'mutation_rate', 'n_queens'])
+        writer.writerow([generation,
+                        score, time, num_pop, mutation_rate, n_queens])
 
 
 # Generate Random Population
@@ -178,5 +189,7 @@ while not print_found_goal(population):
     generation += 1
 
 end_time = time.time()
+save_to_csv(generation, '45', round((end_time - initial_time), 2),
+            POPULATION_SIZE, MUTATION_RATE, NUM_CITIES)
 
 print('Tempo gasto: ', (end_time - initial_time))
