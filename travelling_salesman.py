@@ -6,36 +6,43 @@ from weighted_graph import *
 import csv
 import random
 NUM_CITIES = 4
-POPULATION_SIZE = 10
+POPULATION_SIZE = 5
 MIXING_NUMBER = 4
-MUTATION_RATE = 0.01
+MUTATION_RATE = 0.05
+
+# ta puro
 
 
-# Create the fitness score - How good is a solution?
 def fitness_score(seq, distance_matrix):
     total_distance = 0
+
     try:
-        # sequencia para avaliação invalida
+        # Verifica se a sequência é inválida
         if seq[0] != seq[-1]:
             return None
 
-        for i in range(NUM_CITIES - 1):
+        # Calcula a distância acumulada entre nós na sequência
+        for i in range(len(seq) - 1):
             city1 = seq[i]
-            city2 = seq[i+1]
-            if city2 in distance_matrix[city1]:
+            city2 = seq[i + 1]
+
+            # Verifica se há um caminho entre as cidades na matriz de distâncias
+            if city2 in distance_matrix.get(city1, {}):
                 distance_between_cities = distance_matrix[city1][city2]
                 total_distance += distance_between_cities
-            # se dada cidade nao tiver caminho pra cidade de destino a sequencia é invalida
             else:
+                # Se não houver caminho, a sequência é inválida
                 return None
-        # total_distance += distance_matrix[seq[-1]][seq[0]]
+
         return total_distance
+
     except Exception as error:
         print(error)
 
-
 # Create the selection operator acording their fitness score
 # Select best solutions for next step: crossover
+
+# nao sei se precisa consertar
 
 
 def selection(population, distance_matrix):
@@ -48,47 +55,82 @@ def selection(population, distance_matrix):
 
     return parents
 
-
+# precisa consertar
 # Create the crossover operator
 # Combine features of each solution using a crossover point
 
 
 def crossover(parents):
+    MIXING_NUMBER = len(parents)
 
-    # random indexes to to cross states with
-    cross_points = random.sample(range(NUM_CITIES), MIXING_NUMBER - 1)
+    # O número de pontos de cruzamento não deve ser maior que o número de cidades
+    num_crossover_points = min(NUM_CITIES - 1, MIXING_NUMBER - 1)
+    cross_points = random.sample(range(NUM_CITIES), num_crossover_points)
     offsprings = []
 
-    # all permutations of parents
+    # All permutations of parents
     permutations = list(itertools.permutations(parents, MIXING_NUMBER))
 
     for perm in permutations:
         offspring = []
-
-        # track starting index of sublist
         start_pt = 0
 
-        # doesn't account for last parent
         for parent_idx, cross_point in enumerate(cross_points):
-
-            # sublist of parent to be crossed
             parent_part = perm[parent_idx][start_pt:cross_point]
             offspring.append(parent_part)
-
-            # update index pointer
             start_pt = cross_point
 
-        # last parent
         last_parent = perm[-1]
-        parent_part = last_parent[cross_point:]
+        parent_part = last_parent[start_pt:]
         offspring.append(parent_part)
 
-        # flatten the list since append works kinda differently
-        offsprings.append(list(itertools.chain(*offspring)))
+        flat_offspring = list(itertools.chain(*offspring))
+        unique_offspring = list(dict.fromkeys(flat_offspring))
+
+        if len(unique_offspring) == NUM_CITIES and unique_offspring[0] == unique_offspring[-1]:
+            offsprings.append(unique_offspring)
 
     return offsprings
 
 
+# funcao original
+# def crossover(parents):
+
+#     # random indexes to to cross states with
+#     cross_points = random.sample(range(NUM_CITIES), MIXING_NUMBER - 1)
+#     offsprings = []
+
+#     # all permutations of parents
+#     permutations = list(itertools.permutations(parents, MIXING_NUMBER))
+
+#     for perm in permutations:
+#         offspring = []
+
+#         # track starting index of sublist
+#         start_pt = 0
+
+#         # doesn't account for last parent
+#         for parent_idx, cross_point in enumerate(cross_points):
+
+#             # sublist of parent to be crossed
+#             parent_part = perm[parent_idx][start_pt:cross_point]
+#             offspring.append(parent_part)
+
+#             # update index pointer
+#             start_pt = cross_point
+
+#         # last parent
+#         last_parent = perm[-1]
+#         parent_part = last_parent[cross_point:]
+#         offspring.append(parent_part)
+
+#         # flatten the list since append works kinda differently
+#         offsprings.append(list(itertools.chain(*offspring)))
+
+#     return offsprings
+
+
+# nao sei se precisa consertar
 # Create the routine to mutate a solution
 # A operator to create diversity in the population
 def mutate(seq, cities):
@@ -108,7 +150,7 @@ def print_found_goal(population, distance_matrix, to_print=True):
         score = fitness_score(ind, distance_matrix)
         if to_print:
             print(f'{ind}. Score: {score}')
-        if score == sc.comb(NUM_CITIES, 4):
+        if score == sc.comb(NUM_CITIES, 2):
             if to_print:
                 print('Solution found')
             return True
@@ -141,6 +183,8 @@ def evolution(population, distance_matrix, fitness_score, cities):
 
 
 generation = 0
+
+# aparentemente ta bom, pra teste recomendo usar lista menor
 
 
 def generate_population():
@@ -179,24 +223,23 @@ def generate_population():
 
     return population, distance_matrix
 
-
 # def generate_population(graph, cities):
 #     population = []
 
-#     # Criar uma matriz de distâncias entre as cidades
-#     distance_matrix = {
-#         'João Monlevade': {'Ipatinga': 106, 'Belo Horizonte': 117, 'Capelinha': 359, 'Visc. Do Rio Branco': 213},
-#         'Ipatinga': {'Gov. Valadares': 106, 'João Monlevade': 106},
-#         'Gov. Valadares': {'Capelinha': 214, 'Ipatinga': 106},
-#         'Capelinha': {'Montes Claros': 317, 'João Monlevade': 359, 'Gov. Valadares': 214},
-#         'Montes Claros': {'Belo Horizonte': 420, 'Capelinha': 317, 'Araxá': 566},
-#         'Belo Horizonte': {'João Monlevade': 117, 'Montes Claros': 420, 'Araxá': 362, 'Barbacena': 117},
-#         'Barbacena': {'Juiz de Fora': 101, 'Belo Horizonte': 117, 'Araxá': 506, },
-#         'Juiz de Fora': {'Barbacena': 101, 'Visc. Do Rio Branco': 128},
-#         'Visc. Do Rio Branco': {'João Monlevade': 213, 'Juiz de Fora': 128},
-#         'Araxá': {'Belo Horizonte': 362, 'Barbacena': 506, 'Montes Claros': 566}
+    # # Criar uma matriz de distâncias entre as cidades
+    # distance_matrix = {
+    #     'João Monlevade': {'Ipatinga': 106, 'Belo Horizonte': 117, 'Capelinha': 359, 'Visc. Do Rio Branco': 213},
+    #     'Ipatinga': {'Gov. Valadares': 106, 'João Monlevade': 106},
+    #     'Gov. Valadares': {'Capelinha': 214, 'Ipatinga': 106},
+    #     'Capelinha': {'Montes Claros': 317, 'João Monlevade': 359, 'Gov. Valadares': 214},
+    #     'Montes Claros': {'Belo Horizonte': 420, 'Capelinha': 317, 'Araxá': 566},
+    #     'Belo Horizonte': {'João Monlevade': 117, 'Montes Claros': 420, 'Araxá': 362, 'Barbacena': 117},
+    #     'Barbacena': {'Juiz de Fora': 101, 'Belo Horizonte': 117, 'Araxá': 506, },
+    #     'Juiz de Fora': {'Barbacena': 101, 'Visc. Do Rio Branco': 128},
+    #     'Visc. Do Rio Branco': {'João Monlevade': 213, 'Juiz de Fora': 128},
+    #     'Araxá': {'Belo Horizonte': 362, 'Barbacena': 506, 'Montes Claros': 566}
 
-#     }
+    # }
 
 #     for i in range(POPULATION_SIZE):
 #         # Criar uma rota aleatória inicial
@@ -219,12 +262,12 @@ def save_to_csv(generation, score, time, num_pop, mutation_rate, n_queens):
 cities_graph = Weighted_Graph()
 
 # cities = ['Montes Claros', 'Capelinha', 'Gov. Valadares', 'Ipatinga', 'João Monlevade',
-#           'Visc. Do Rio Branco', 'Juiz de Fora', 'Barbacena', 'Belo Horizonte', 'Araxá',]
+#           'Visc. Do Rio Branco', 'Juiz de Fora', 'Barbacena', 'Belo Horizonte', 'Araxá']
 
 cities = ['Ouro Preto', 'Mariana', 'Alvinopolis', 'BH']
 
 # Generate Random Population
-population, distance_matrix = generate_population(cities_graph)
+population, distance_matrix = generate_population()
 
 initial_time = time.time()
 
