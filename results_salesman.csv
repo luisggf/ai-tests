@@ -1,0 +1,4 @@
+generation,score,time,num_pop,mutation_rate,n_queens
+0,?,0.0,10,0.1,4
+1000,?,7.13,10,0.1,4
+10,?,0.06,10,0.1,4

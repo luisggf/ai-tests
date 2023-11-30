@@ -4,20 +4,20 @@ from scipy import special as sc
 import time
 import csv
 import random
-NUM_CITIES = 4
+NUM_QUEENS = 8
 POPULATION_SIZE = 50
 MIXING_NUMBER = 2
-MUTATION_RATE = 0.01
+MUTATION_RATE = 0.05
 
 
 # Create the fitness score - How good is a solution?
 def fitness_score(seq):
     score = 0
 
-    for row in range(NUM_CITIES):
+    for row in range(NUM_QUEENS):
         col = seq[row]
 
-        for other_row in range(NUM_CITIES):
+        for other_row in range(NUM_QUEENS):
 
             # queens cannot pair with itself
             if other_row == row:
@@ -44,7 +44,7 @@ def selection(population):
 
     for ind in population:
         # select parents with probability proportional to their fitness score
-        if random.randrange(sc.comb(NUM_CITIES, 2)*2) < fitness_score(ind):
+        if random.randrange(sc.comb(NUM_QUEENS, 2)*2) < fitness_score(ind):
             parents.append(ind)
 
     return parents
@@ -57,7 +57,7 @@ def selection(population):
 def crossover(parents):
 
     # random indexes to to cross states with
-    cross_points = random.sample(range(NUM_CITIES), MIXING_NUMBER - 1)
+    cross_points = random.sample(range(NUM_QUEENS), MIXING_NUMBER - 1)
     offsprings = []
 
     # all permutations of parents
@@ -74,7 +74,7 @@ def crossover(parents):
 
             # sublist of parent to be crossed
             parent_part = perm[parent_idx][start_pt:cross_point]
-            offspring.append(parent_part)
+            offspring += parent_part
 
             # update index pointer
             start_pt = cross_point
@@ -82,10 +82,12 @@ def crossover(parents):
         # last parent
         last_parent = perm[-1]
         parent_part = last_parent[cross_point:]
-        offspring.append(parent_part)
+        offspring += parent_part
+        # offspring.append(parent_part)
 
         # flatten the list since append works kinda differently
-        offsprings.append(list(itertools.chain(*offspring)))
+        offsprings.append(offspring)
+        # offsprings.append(list(itertools.chain(*offspring)))
 
     return offsprings
 
@@ -95,7 +97,7 @@ def crossover(parents):
 def mutate(seq):
     for row in range(len(seq)):
         if random.random() < MUTATION_RATE:
-            seq[row] = random.randrange(NUM_CITIES)
+            seq[row] = random.randrange(NUM_QUEENS)
 
     return seq
 
@@ -106,7 +108,7 @@ def print_found_goal(population, to_print=True):
         score = fitness_score(ind)
         if to_print:
             print(f'{ind}. Score: {score}')
-        if score == sc.comb(NUM_CITIES, 2):
+        if score == sc.comb(NUM_QUEENS, 2):
             if to_print:
                 print('Solution found')
             return True
@@ -145,7 +147,7 @@ def generate_population():
     population = []
 
     for individual in range(POPULATION_SIZE):
-        new = [random.randrange(NUM_CITIES) for idx in range(NUM_CITIES)]
+        new = [random.randrange(NUM_QUEENS) for idx in range(NUM_QUEENS)]
         population.append(new)
 
     return population
@@ -160,7 +162,7 @@ def generate_population():
     population = []
 
     for individual in range(POPULATION_SIZE):
-        new = [random.randrange(NUM_CITIES) for idx in range(NUM_CITIES)]
+        new = [random.randrange(NUM_QUEENS) for idx in range(NUM_QUEENS)]
         population.append(new)
 
     return population
@@ -190,6 +192,6 @@ while not print_found_goal(population):
 
 end_time = time.time()
 save_to_csv(generation, '45', round((end_time - initial_time), 2),
-            POPULATION_SIZE, MUTATION_RATE, NUM_CITIES)
+            POPULATION_SIZE, MUTATION_RATE, NUM_QUEENS)
 
 print('Tempo gasto: ', (end_time - initial_time))
