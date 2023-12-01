@@ -1,4 +1,3 @@
-# Constants, experiment parameters
 import itertools
 from scipy import special as sc
 import time
@@ -6,66 +5,93 @@ from weighted_graph import *
 from itertools import chain
 import csv
 import random
-NUM_CITIES = 4
+NUM_CITIES = 10
+MAX_GEN = 100
 POPULATION_SIZE = 10
-MIXING_NUMBER = 2
-MUTATION_RATE = 0.1
-
-# ta puro
+MIXING_NUMBER = 9
+MUTATION_RATE = 0.05
 
 
 def fitness_score(seq, distance_matrix):
     total_distance = 0
 
     try:
+        while True:
+            # reinicializa a distancia acumulada para cada tentativa
+            total_distance = 0
 
-        # Calcula a distância acumulada entre nós na sequência
-        for i in range(len(seq) - 1):
-            city1 = seq[i]
-            city2 = seq[i + 1]
+            # calcula a distância acumulada entre nós na sequência dada
+            for i in range(len(seq) - 1):
+                city1 = seq[i]
+                city2 = seq[i + 1]
 
-            # Verifica se há um caminho entre as cidades na matriz de distâncias
-            if city2 in distance_matrix.get(city1, {}):
-                distance_between_cities = distance_matrix[city1][city2]
-                total_distance += distance_between_cities
+                # verifica se ha um caminho entre as cidades na matriz de distâncias
+                if city2 in distance_matrix.get(city1, {}):
+                    distance_between_cities = distance_matrix[city1][city2]
+                    total_distance += distance_between_cities
+                else:
+                    # se não houver caminho, corrige a sequencia e tenta denovo
+                    seq = check_and_fix_path(distance_matrix, seq)
+                    break
+            # se percorreu toda a sequência sem problemas, encerra o loop
             else:
-                # Se não houver caminho, a sequência é inválida
-                return 347.2
+                break
 
         return total_distance
 
     except Exception as error:
         print(error)
 
+
 # Create the selection operator acording their fitness score
 # Select best solutions for next step: crossover
 
-# nao sei se precisa consertar
-
-
 def selection(population, distance_matrix):
+    # lista para armazenar os indivíduos selecionados como pais
     parents = []
 
-    for ind in population:
-        # select parents with probability proportional to their fitness score
-        if random.randint(0, sc.comb(NUM_CITIES, 2) * 2 - 1) < fitness_score(ind, distance_matrix):
-            parents.append(ind)
+    # variável criada para armazenar a soma total dos inversos do fitness
+    total_inverse_fitness = 0
+
+    # calcula os inversos do fitness para cada indivíduo na população
+    inverse_fitness_values = [
+        1 / fitness_score(ind, distance_matrix) for ind in population]
+
+    # calcula a soma total dos inversos do fitness
+    total_inverse_fitness = sum(inverse_fitness_values)
+
+    # calcula as probabilidades de seleção para cada indivíduo
+    selection_probabilities = [
+        inv_fitness / total_inverse_fitness for inv_fitness in inverse_fitness_values]
+
+    # realiza a seleção proporcional com base nas probabilidades calculadas
+    for _ in range(2):
+        # seleciona um índice com base nas probabilidades usando random.choices
+        selected_index = random.choices(
+            range(len(population)), weights=selection_probabilities)[0]
+        # adiciona o indivíduo selecionado na lista de pais
+        parents.append(population[selected_index])
+        print(len(parents))
 
     return parents
 
-# precisa consertar
+
 # Create the crossover operator
 # Combine features of each solution using a crossover point
 
-
+# retorna uma cidade aleatória
 def rand_city_non_conditional():
-    cities = ['Ouro Preto', 'Mariana', 'Alvinopolis', 'BH']
+    cities = ['Montes Claros', 'Capelinha', 'Gov. Valadares', 'Ipatinga', 'João Monlevade',
+              'Visc. Do Rio Branco', 'Juiz de Fora', 'Barbacena', 'Belo Horizonte', 'Araxá']
     index = random.randint(0, (len(cities) - 1))
     return cities[index]
 
+# retorna uma cidade aleatória baseada em um conjunto ja existente
+
 
 def rand_city(seq):
-    cities = ['Ouro Preto', 'Mariana', 'Alvinopolis', 'BH']
+    cities = ['Montes Claros', 'Capelinha', 'Gov. Valadares', 'Ipatinga', 'João Monlevade',
+              'Visc. Do Rio Branco', 'Juiz de Fora', 'Barbacena', 'Belo Horizonte', 'Araxá']
     available_cities = list(set(cities) - set(seq))
 
     if not available_cities:
@@ -74,29 +100,48 @@ def rand_city(seq):
     index = random.randint(0, len(available_cities) - 1)
     return available_cities[index]
 
+# corrige o caminho da sequencia passada por parametro caso seja invalido e retorna uma sequencia valida
+
+
+def remove_duplicatas_mais_antigas(lista):
+    elementos_vistos = []
+    lista_sem_duplicatas = []
+
+    for elemento in lista:
+        # Verifica se o elemento já foi visto
+        if elemento not in elementos_vistos:
+            # Adiciona o elemento único à lista sem duplicatas
+            lista_sem_duplicatas.append(elemento)
+
+            # Adiciona o elemento à lista de elementos vistos
+            elementos_vistos.append(elemento)
+
+    return lista_sem_duplicatas
+
 
 def check_and_fix_path(distance_matrix, city_sequence):
-    new_city_sequence = list(city_sequence)
+    new_city_sequence = set(city_sequence)
     remaining_cities = list(
         set(distance_matrix.keys()) - set(new_city_sequence))
+    if not remaining_cities:
+        return new_city_sequence
 
-    current_city = rand_city_non_conditional()
+    new_city_sequence = list(new_city_sequence)
 
     while remaining_cities:
-        if current_city not in new_city_sequence:
-            new_city_sequence.append(current_city)
-            remaining_cities.remove(current_city)
-
         possible_cities = [
-            city for city in remaining_cities if city in distance_matrix[current_city]]
+            city for city in remaining_cities if city in distance_matrix[new_city_sequence[-1]]
+        ]
 
         if not possible_cities:
             break
 
-        next_city = rand_city_non_conditional()
-        current_city = next_city
+        next_city = random.choice(possible_cities)
+        new_city_sequence.append(next_city)
+        remaining_cities.remove(next_city)
 
-    if new_city_sequence[-1] != new_city_sequence[0] and new_city_sequence[-1] in distance_matrix.get(new_city_sequence[0], {}):
+    # Se a última cidade estiver na lista de adjascencia da primeira e o tamanho da sequência for o correto
+    if new_city_sequence[-1] in distance_matrix.get(new_city_sequence[0], {}) and len(new_city_sequence) == NUM_CITIES:
         new_city_sequence.append(new_city_sequence[0])
 
     return new_city_sequence
@@ -104,59 +149,29 @@ def check_and_fix_path(distance_matrix, city_sequence):
 
 def crossover(parents, matriz):
     # random indexes to cross states with
-    cross_points = random.sample(range(NUM_CITIES), MIXING_NUMBER - 1)
+    cross_points = random.sample(range(NUM_CITIES), 1)
     offsprings = []
-    # all permutations of parents
-    permutations = list(itertools.permutations(parents, MIXING_NUMBER))
+    parent = parents[0]
+    last_parent = parents[-1]
 
-    for perm in permutations:
-        offspring = []
+    if parent == last_parent:
+        return parent
 
-        # track starting index of sublist
-        start_pt = 0
+    # Selecting subsequences from the two parents
+    offspring = []
+    start_pt = 0
+    for _, cross_point in enumerate(cross_points):
+        parent_part = parent[start_pt:cross_point]
+        offspring += parent_part
+        start_pt = cross_point
 
-        # doesn't account for the last parent
-        for parent_idx, cross_point in enumerate(cross_points):
-
-            # sublist of parent to be crossed
-            parent_part = perm[parent_idx][start_pt:cross_point]
-            offspring += parent_part
-
-            # update index pointer
-            start_pt = cross_point
-
-        # last parent
-        last_parent = perm[-1]
-        parent_part = last_parent[cross_point:]
-
-        for city in parent_part:
-            if city not in offspring:
-                offspring.append(city)
-
-        while len(offspring) != NUM_CITIES:
-            new_city = rand_city(offspring)
-            if new_city not in offspring:
-                offspring.append(new_city)
-
-        offspring = check_and_fix_path(matriz, offspring)
-
-        if len(offspring) == NUM_CITIES:
-            offspring.append(offspring[0])
-
-        offsprings.append(offspring)
+    # Handling the last parent
+    offspring += last_parent[start_pt:]
+    offspring = check_and_fix_path(matriz, offspring)
+    offsprings.append(offspring)
 
     return offsprings
 
-
-def complete_offspring(offspring):
-    while len(offspring) < NUM_CITIES:
-        new_city = rand_city(offspring)
-        while new_city in offspring:
-            new_city = rand_city(offspring)
-        offspring.append(new_city)
-    return offspring
-
-# nao sei se precisa consertar
 # Create the routine to mutate a solution
 # A operator to create diversity in the population
 
@@ -174,15 +189,28 @@ def mutate(seq):
 
 
 def print_found_goal(population, distance_matrix, generations, to_print=True):
+    best_solution = None
+    best_score = float('inf')
+
     for ind in population:
         score = fitness_score(ind, distance_matrix)
+
         if to_print:
             print(f'{ind}. Score: {score}')
-        if generations == 10:
-            if to_print:
-                print('Gerações máximas atingidas!')
-            return True
 
+        if score < best_score and len(ind) == NUM_CITIES + 1:
+            best_score = score
+            best_solution = ind
+
+    if generations == MAX_GEN:
+        if to_print:
+            print('Gerações máximas atingidas!')
+            print(
+                f'Melhor solução encontrada na geração {generations}: {best_solution}. Score: {best_score}')
+            return best_score
+        return best_score
+
+    return False
 # Create the routine to implement the evolution
 
 
@@ -194,57 +222,47 @@ def evolution(population, distance_matrix, fitness_score):
     offsprings = crossover(parents, distance_matrix)
 
     # mutation
-    offsprings = list(map(mutate, offsprings))
+    # offsprings = list(map(mutate, offsprings))
 
     # introduce top-scoring individuals from the previous generation and keep top fitness individuals
     new_gen = offsprings + population
 
     # Utilize a matriz de distâncias na avaliação de aptidão
-    new_gen = sorted(new_gen, key=lambda ind: fitness_score(
-        ind, distance_matrix), reverse=True)[:POPULATION_SIZE]
+    # new_gen = sorted(new_gen, key=lambda ind: fitness_score(
+    #     ind, distance_matrix), reverse=True)[:POPULATION_SIZE]
 
     return new_gen
 # Running the experiment
 
 
-generation = 0
-
-# aparentemente ta bom, pra teste recomendo usar lista menor
-
-
-def generate_population():
+def generate_population(start_option, cities, distance_matrix):
     population = []
-    cities = ['Ouro Preto', 'Mariana', 'Alvinopolis', 'BH']
-
-    distance_matrix = {
-        'Ouro Preto': {'Mariana': 14.4, 'BH': 101.5},
-        'Mariana': {'Ouro Preto': 14.4, 'Alvinopolis': 69.3},
-        'Alvinopolis': {'Mariana': 69.3, 'BH': 162},
-        'BH': {'Ouro Preto': 69.3, 'Alvinopolis': 162}
-    }
-
-    for _ in range(POPULATION_SIZE):
+    valid_route = []
+    num_pop = 0
+    while num_pop < POPULATION_SIZE:
         valid_route = []
+        valid_route.append(start_option)
         remaining_cities = cities.copy()
-        current_city = random.choice(remaining_cities)
+        remaining_cities.remove(start_option)
 
         while remaining_cities:
-            if current_city not in valid_route:
-                valid_route.append(current_city)
-                remaining_cities.remove(current_city)
+            current_city = valid_route[-1]
 
             possible_cities = [
-                city for city in remaining_cities if city in distance_matrix[current_city]]
+                city for city in remaining_cities if city in distance_matrix[current_city]
+            ]
 
             if not possible_cities:
                 break
 
             next_city = random.choice(possible_cities)
-            current_city = next_city
+            valid_route.append(next_city)
+            remaining_cities.remove(next_city)
 
-        if valid_route[-1] != valid_route[0] and valid_route[-1] in distance_matrix.get(valid_route[0], {}):
+        if valid_route[-1] in distance_matrix.get(start_option, {}) and len(valid_route) == NUM_CITIES:
             valid_route.append(valid_route[0])
             population.append(valid_route)
+            num_pop += 1
 
     return population, distance_matrix
 
@@ -254,54 +272,45 @@ def save_to_csv(generation, score, time, num_pop, mutation_rate, n_queens):
         writer = csv.writer(file)
         if file.tell() == 0:
             writer.writerow(['generation',
-                            'score', 'time', 'num_pop', 'mutation_rate', 'n_queens'])
+                            'score', 'time', 'num_pop', 'mutation_rate', 'n_cities'])
         writer.writerow([generation,
                         score, time, num_pop, mutation_rate, n_queens])
 
 
-cities = ['Ouro Preto', 'Mariana', 'Alvinopolis', 'BH']
+start_option = rand_city_non_conditional()
+generation = 0
 
-population, distance_matrix = generate_population()
+cities = ['Montes Claros', 'Capelinha', 'Gov. Valadares', 'Ipatinga', 'João Monlevade',
+          'Visc. Do Rio Branco', 'Juiz de Fora', 'Barbacena', 'Belo Horizonte', 'Araxá']
 
+# matriz de distancia entre cidades
+distance_matrix = {
+    'João Monlevade': {'Ipatinga': 106, 'Belo Horizonte': 117, 'Capelinha': 359, 'Visc. Do Rio Branco': 213},
+    'Ipatinga': {'Gov. Valadares': 106, 'João Monlevade': 106, 'Montes Claros': 525, 'Barbacena': 368},
+    'Gov. Valadares': {'Capelinha': 214, 'Ipatinga': 106, 'Visc. Do Rio Branco': 372},
+    'Capelinha': {'Montes Claros': 317, 'João Monlevade': 359, 'Gov. Valadares': 214, 'Araxá': 778},
+    'Montes Claros': {'Belo Horizonte': 420, 'Capelinha': 317, 'Araxá': 566, 'Ipatinga': 525},
+    'Belo Horizonte': {'João Monlevade': 117, 'Montes Claros': 420, 'Araxá': 362, 'Barbacena': 171},
+    'Barbacena': {'Juiz de Fora': 101, 'Belo Horizonte': 171, 'Araxá': 506, 'Ipatinga': 368},
+    'Juiz de Fora': {'Barbacena': 101, 'Visc. Do Rio Branco': 128},
+    'Visc. Do Rio Branco': {'João Monlevade': 213, 'Juiz de Fora': 128, 'Gov. Valadares': 372},
+    'Araxá': {'Belo Horizonte': 362, 'Barbacena': 506, 'Montes Claros': 566, 'Capelinha': 778}
+}
+
+population, distance_matrix = generate_population(
+    start_option, cities, distance_matrix)
 initial_time = time.time()
 
 # Generations until found the solution
 while not print_found_goal(population, distance_matrix, generation):
     print(f'Generation: {generation}')
-    print_found_goal(population, distance_matrix, generation)
+    score = print_found_goal(population, distance_matrix, generation)
     population = evolution(population, distance_matrix, fitness_score)
     generation += 1
 
 end_time = time.time()
-save_to_csv(generation, '?', round((end_time - initial_time), 2),
+
+save_to_csv(generation, score, round((end_time - initial_time), 2),
             POPULATION_SIZE, MUTATION_RATE, NUM_CITIES)
 
 print('Tempo gasto: ', (end_time - initial_time))
-
-# cities = ['Montes Claros', 'Capelinha', 'Gov. Valadares', 'Ipatinga', 'João Monlevade',
-#           'Visc. Do Rio Branco', 'Juiz de Fora', 'Barbacena', 'Belo Horizonte', 'Araxá']
-
-# def generate_population(graph, cities):
-#     population = []
-
-# # Criar uma matriz de distâncias entre as cidades
-# distance_matrix = {
-#     'João Monlevade': {'Ipatinga': 106, 'Belo Horizonte': 117, 'Capelinha': 359, 'Visc. Do Rio Branco': 213},
-#     'Ipatinga': {'Gov. Valadares': 106, 'João Monlevade': 106},
-#     'Gov. Valadares': {'Capelinha': 214, 'Ipatinga': 106},
-#     'Capelinha': {'Montes Claros': 317, 'João Monlevade': 359, 'Gov. Valadares': 214},
-#     'Montes Claros': {'Belo Horizonte': 420, 'Capelinha': 317, 'Araxá': 566},
-#     'Belo Horizonte': {'João Monlevade': 117, 'Montes Claros': 420, 'Araxá': 362, 'Barbacena': 117},
-#     'Barbacena': {'Juiz de Fora': 101, 'Belo Horizonte': 117, 'Araxá': 506, },
-#     'Juiz de Fora': {'Barbacena': 101, 'Visc. Do Rio Branco': 128},
-#     'Visc. Do Rio Branco': {'João Monlevade': 213, 'Juiz de Fora': 128},
-#     'Araxá': {'Belo Horizonte': 362, 'Barbacena': 506, 'Montes Claros': 566}
-
-# }
-
-#     for i in range(POPULATION_SIZE):
-#         # Criar uma rota aleatória inicial
-#         route = random.sample(cities, len(cities))
-#         population.append(route)
-
-#     return population, distance_matrix
