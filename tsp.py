@@ -31,7 +31,7 @@ def fitness_score(seq, distance_matrix):
                 total_distance += distance_between_cities
             else:
                 # Se não houver caminho, a sequência é inválida
-                return 347.2
+                return float('inf')
 
         return total_distance
 
