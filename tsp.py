@@ -9,10 +9,8 @@ import random
 NUM_CITIES = 10
 POPULATION_SIZE = 10
 MIXING_NUMBER = 2
-MUTATION_RATE = 0.1
+MUTATION_RATE = 0.01
 MAX_GEN = 1000
-
-# ta puro
 
 
 def fitness_score(seq, distance_matrix):
@@ -139,7 +137,6 @@ def crossover(parents, matriz):
             new_city = rand_city(offspring)
             if new_city not in offspring:
                 offspring.append(new_city)
-
     return offsprings
 
 
