@@ -1,13 +1,18 @@
-# Implementando o Perceptron (Frank Rosenblatt, 1957)
-from ucimlrepo import fetch_ucirepo
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.datasets import make_classification
-import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import confusion_matrix
+from ucimlrepo import fetch_ucirepo
+from adult_prefiltration import *
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn import preprocessing
+import sklearn.preprocessing as preprocessing
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from keras import backend as K
 
 
 # Definindo uma classe para o Perceptron
@@ -31,11 +36,10 @@ class Perceptron:
 
         erros_iteracao = []  # Armazenar os erros de cada iteração
 
-        # O erro deve ser calculado para cada iteração individualmente.
+        # O erro deve ser calculado para cada iter  ação individualmente.
         for _ in range(self.num_iteracoes):
             erro_iteracao = 0
             for idx, x_i in enumerate(X):
-
                 saida_linear = np.dot(x_i, self.pesos) + self.bias
                 y_previsto = self.func_ativacao(saida_linear)
                 atualizacao = self.alfa * (y_[idx] - y_previsto)
@@ -94,89 +98,142 @@ class Perceptron:
         plt.show()
 
 
-# fetch dataset
-adult = fetch_ucirepo(id=2)
-
-# data (as pandas dataframes)
-X = adult.data.features
-y = adult.data.targets
-
-
-integer_columns = [0, 2, 4, 10, 11, 12]
-nominal_columns = [col for col in X.columns if col not in integer_columns]
-
-# preenche valores vazios de x com o valor mais comum da base naquela coluna
-X.fillna(X.mode().iloc[0], inplace=True)
+def convert_to_int(columns):
+    for column in columns:
+        unique_values = df[column].unique().tolist()
+        dic = {}
+        for indx, val in enumerate(unique_values):
+            dic[val] = indx
+        df[column] = df[column].map(dic).astype(int)
+        print(column + " done!")
 
 
-# normalização das colunas nominais (transformando-as em valores numericos)
-label_encoder = LabelEncoder()
-for col in nominal_columns:
-    X[col] = label_encoder.fit_transform(X[col])
+def convert_to_onehot(data, columns):
+    dummies = pd.get_dummies(data[columns])
+    data = data.drop(columns, axis=1)
+    data = pd.concat([data, dummies], axis=1)
+    return data
 
 
-X = X.values
+def show_values(columns):
+    for column in columns:
+        max_val = df[column].max()
+        min_val = df[column].min()
+        mean_val = df[column].mean()
+        var_val = df[column].var()
+        print(column + ': values=['+str(min_val)+','+str(max_val) +
+              '] , mean='+str(mean_val)+' , var='+str(var_val))
 
-# normalizando conjunto de dados
-scaler = StandardScaler()
-X = scaler.fit_transform(X)
 
-y = y['income'].isin(['>50K', '<=50K']).astype(int)
+def normalize(columns):
+    scaler = preprocessing.StandardScaler()
+    df[columns] = scaler.fit_transform(df[columns])
 
-# obtendo dados para calculo de metricas de desempenho
-# valores reais esperados
-y_true = y
 
-# Inicializando e treinando o perceptron
-perceptron = Perceptron(taxa_aprendizado=0.05,
-                        num_iteracoes=100, tolerancia=10)
+header = ['age', 'workclass', 'fnlwgt', 'education', 'education-num', 'marital-status', 'occupation', 'relationship', 'race', 'sex', 'capital-gain',
+          'capital-loss', 'hours-per-week', 'native-country', 'salary']
+try:
+    df_temp = pd.read_csv("adults.csv", index_col=False,
+                          skipinitialspace=True, header=None, names=header)
+except:
+    df_temp = pd.read_csv("https://raw.githubusercontent.com/aliakbarbadri/mlp-classifier-adult-dataset/master/adults.csv",
+                          index_col=False, skipinitialspace=True, header=None, names=header)
 
-X_train, X_test, y_train, y_test = train_test_split(X, y)
+df = df_temp
+
+# prefiltragens
+
+# remover valores nans
+df = df.replace('?', np.nan)
+print("Quantidade de valores NULL: ", df[pd.isnull(df).any(axis=1)].shape)
+
+
+print("Tamanho, N° Colunas do Dataframe: ", df.shape)
+
+# remover colunas contendo NAN
+df.dropna(inplace=True)
+print("Tamnho, N° de Colunas do Dataframe após remoção de dados nulos", df.shape)
+
+# remover education-num porque existe coluna education nominal
+df.drop('education-num', axis=1, inplace=True)
+
+print(df.shape)
+
+# colunas categoricas a serem normnalizadas
+categorical_columns = ['workclass', 'education', 'marital-status',
+                       'occupation', 'relationship', 'race', 'sex', 'native-country']
+label_column = ['salary']
+
+
+print(df['salary'])
+convert_to_int(label_column)
+print(df['salary'])
+
+df = convert_to_onehot(df, categorical_columns)
+
+normalize_columns = ['age', 'fnlwgt',
+                     'capital-gain', 'capital-loss', 'hours-per-week']
+
+
+# converter coluna salario em valores binarios
+# valores antes e pos normalização
+show_values(normalize_columns)
+normalize(normalize_columns)
+# pos normalização
+show_values(normalize_columns)
+
+y_labels = df['salary']
+x_data = df.drop('salary', axis=1)
+
+x_data = x_data.astype(float).values
+
+X_train, X_test, y_train, y_test = train_test_split(
+    x_data, y_labels, test_size=0.5, shuffle=True)
+
+
+print(X_train.shape, y_train.shape)
+print(y_test)
+print(X_test.shape, y_test.shape)
+
+perceptron = Perceptron(taxa_aprendizado=0.01,
+                        num_iteracoes=100, tolerancia=50)
+
 
 # treina rede neural antes de calcular valores previstos
 perceptron.treina(X_train, y_train)
 
-y_esperado = perceptron.predicao(X)
+y_esperado = perceptron.predicao(X_test)
 
-conf_matrix = confusion_matrix(y_true, y_esperado)
-
-VP = conf_matrix[1, 1]
-FP = conf_matrix[0, 1]
-VN = conf_matrix[0, 0]
-FN = conf_matrix[1, 0]
-
-accuracy = (VP + VN) / len(X)
-false_positive = FN / (FN + VN)
-false_negative = FN / (FN + VP)
-
-print('Precisão do modelo: ', accuracy)
-print('Falsos positivos: ', false_positive)
-print('Falsos negativos: ', false_negative)
-
-# Gráfico do Limite de Decisão
-perceptron.plota_decisao(X_test, y_test)
-
-# Gráfico de erro por iteração
-perceptron.plota_erros()
+y_esperado_binary = (y_esperado > 0.5).astype(int)
 
 
-# Criar e visualizar dados simples 2D
+print(y_esperado_binary.shape)
+print(y_test.shape)
 
-# X, y = make_classification(n_samples=50, n_features=2, n_informative=2,
-#                            n_redundant=0, n_classes=2, n_clusters_per_class=1, random_state=1)
-# y = np.where(y == 0, -1, 1)  # Transforma os rótulos em 1 e -1
+# conta quantidade de valores esperados iguais os valores de base
+accuracy = np.mean(y_esperado_binary == y_test)
 
+# Confusion Matrix
+cm = confusion_matrix(y_test, y_esperado_binary, labels=[0, 1])
 
-# # Inicializando e treinando o perceptron
-# perceptron = Perceptron(taxa_aprendizado=0.01, num_iteracoes=20, tolerancia=0)
-# perceptron.treina(X, y)
+# True Positives, True Negatives, False Positives, False Negatives
+tn, fp, fn, tp = cm.ravel()
+
+# Accuracy
+accuracy = accuracy_score(y_test, y_esperado_binary)
+
+print("True Positives:", tp)
+print("True Negatives:", tn)
+print("False Positives:", fp)
+print("False Negatives:", fn)
+print("Accuracy:", accuracy)
 
 
 # # Gráfico do Limite de Decisão
-# perceptron.plota_decisao(X, y)
+perceptron.plota_decisao(X_test, y_esperado_binary)
 
-# # Gráfico de erro por iteração
-# perceptron.plota_erros()
+# Gráfico de erro por iteração
+perceptron.plota_erros()
 
 
 # Atividade Prática -----------------------------------------------------------
