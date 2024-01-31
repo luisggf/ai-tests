@@ -1,8 +1,10 @@
+
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 from ucimlrepo import fetch_ucirepo
-from adult_prefiltration import *
+import os
+import time
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
@@ -12,7 +14,16 @@ from sklearn import preprocessing
 import sklearn.preprocessing as preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_recall_curve
 from keras import backend as K
+import tensorflow as tf
+from keras.models import Sequential
+from keras.layers import Dense
+import keras
+from keras.metrics import Precision, Recall, AUC, TruePositives, TrueNegatives, FalsePositives, FalseNegatives, BinaryAccuracy, BinaryCrossentropy
 
 
 class MLP:
@@ -76,6 +87,8 @@ class MLP:
             camada_oculta_saida, saida = self.feedforward(df)
             # Backpropagation
             self.backpropagation(df, y, camada_oculta_saida, saida)
+            erro_medio = np.mean(np.square(y - saida))
+            print("Mean Squared Error for epoch", epoca, ":", erro_medio)
 
     def predicao(self, df):
         _, saida = self.feedforward(df)
@@ -145,196 +158,66 @@ def normalize(columns):
     df[columns] = scaler.fit_transform(df[columns])
 
 
-def f1(y_true, y_pred):
-    def recall(y_true, y_pred):
-        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-        possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
-        recall = true_positives / (possible_positives + K.epsilon())
-        return recall
-
-    def precision(y_true, y_pred):
-        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-        predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
-        precision = true_positives / (predicted_positives + K.epsilon())
-        return precision
-
-    precision = precision(y_true, y_pred)
-    recall = recall(y_true, y_pred)
-    return 2*((precision*recall)/(precision+recall+K.epsilon()))
+def convert_bool_to_int(df, columns):
+    for column in columns:
+        if df[column].dtype == 'bool':
+            df[column] = df[column].astype(int)
+    return df
 
 
-# obter dados por api
-# adult = fetch_ucirepo(id=2)
+def plot_log_y_values_distribution(y_pred):
+    """
+    Plots the distribution of predicted values after taking logarithm.
 
-# # data (as pandas dataframes)
-# X = adult.data.features
-# y = adult.data.targets
+    Parameters:
+    - y_pred: Numpy array of predicted values.
+    """
+    # Take the logarithm of predicted values, handling zero values
+    log_y_pred = np.log1p(y_pred)
 
-
-header = ['age', 'workclass', 'fnlwgt', 'education', 'education-num', 'marital-status', 'occupation', 'relationship', 'race', 'sex', 'capital-gain',
-          'capital-loss', 'hours-per-week', 'native-country', 'salary']
-try:
-    df_temp = pd.read_csv("adults.csv", index_col=False,
-                          skipinitialspace=True, header=None, names=header)
-except:
-    df_temp = pd.read_csv("https://raw.githubusercontent.com/aliakbarbadri/mlp-classifier-adult-dataset/master/adults.csv",
-                          index_col=False, skipinitialspace=True, header=None, names=header)
-
-df = df_temp
-
-# prefiltrations
-
-# remove nans values
-df = df.replace('?', np.nan)
-print("Quantidade de valores NULL: ", df[pd.isnull(df).any(axis=1)].shape)
+    plt.figure(figsize=(10, 6))
+    plt.hist(log_y_pred, bins=30, color='blue', alpha=0.7)
+    plt.title('Distribution of Logarithm of Predicted Values')
+    plt.xlabel('Logarithm of Predicted Values')
+    plt.ylabel('Frequency')
+    plt.grid(True)
+    plt.show()
 
 
-print("Tamanho, N° Colunas do Dataframe: ", df.shape)
+# ler dados já filtrados por praticidade
+df = pd.read_csv('adult_filtered.csv')
 
-# remover colunas contendo NAN
-df.dropna(inplace=True)
-print("Tamnho, N° de Colunas do Dataframe após remoção de dados nulos", df.shape)
-
-# remover education-num porque existe coluna education nominal
-df.drop('education-num', axis=1, inplace=True)
-
-print(df.shape)
-
-# colunas categoricas a serem normnalizadas
-categorical_columns = ['workclass', 'education', 'marital-status',
-                       'occupation', 'relationship', 'race', 'sex', 'native-country']
-label_column = ['salary']
-
-print(df['salary'])
-convert_to_int(label_column)
-
-print(df['salary'])
-df = convert_to_onehot(df, categorical_columns)
-
-normalize_columns = ['age', 'fnlwgt',
-                     'capital-gain', 'capital-loss', 'hours-per-week']
-
-# converter coluna salario em valores binarios
-
-# valores antes e pos normalização
-show_values(normalize_columns)
-
-normalize(normalize_columns)
-
-# pos normalização
-show_values(normalize_columns)
-
+# separar df em 2 grupos bem definidos
 y_labels = df['salary']
 x_data = df.drop('salary', axis=1)
 
-x_data = x_data.astype(float).values
 
+# separar conjunto de treino e conjunto de teste
 X_train, X_test, y_train, y_test = train_test_split(
-    x_data, y_labels, test_size=0.5, shuffle=True)
+    x_data, y_labels, test_size=0.2, shuffle=True, random_state=42)
 
+# construir modelo MLP sequencial com lib Keras
+model = Sequential()
+model.add(Dense(100, input_dim=103, activation='relu'))
+# 1 camada oculta
+model.add(Dense(50, activation='relu'))
+# 2 camada oculta se necessário (caso for utilizar 1 para métricas #comentar)
+model.add(Dense(25, activation='relu'))
+# camada de saída com ativação sigmoid
+model.add(Dense(1, activation='sigmoid'))
 
-print(X_train.shape, y_train.shape)
-print(y_test)
-print(X_test.shape, y_test.shape)
+# compilar modelo com classificação binaria e diversas metricas de performance
+model.compile(
+    optimizer='adam',
+    loss='binary_crossentropy',
+    metrics=['accuracy', Precision(), Recall(), AUC(), TruePositives(
+    ), TrueNegatives(), FalsePositives(), FalseNegatives(), BinaryAccuracy()]
+)
 
-# treina rede neural antes de calcular valores previstos
-mlp = MLP(dim_entrada=103, dim_oculta=10, dim_saida=1, taxa_aprendizado=0.05)
+# treinar modelo
+model.fit(X_train, y_train, epochs=10, batch_size=32,
+          validation_data=(X_test, y_test))
 
-y_train, y_test = y_train.values.reshape(-1, 1), y_test.values.reshape(-1, 1)
-
-# treinamento da porção da base de entrada
-mlp.fit(X_train, y_train, epocas=20)
-
-# Realizando previsões no conjunto de teste
-# y_esperado deve ser um array de arrays de valores entre 0 e 1
-y_esperado = mlp.predicao(X_test)
-
-
-# filtra probabilidades entre 0 e 1 sendo 1 > 0.5 e 0 <= 0.5
-y_esperado_binary = (y_esperado > 0.5).astype(int)
-
-
-print(y_esperado_binary.shape)
-print(y_test.shape)
-
-# conta quantidade de valores esperados iguais os valores de base
-accuracy = np.mean(y_esperado_binary == y_test)
-# f1_score = f1(y_test, y_esperado_binary)
-# Assuming y_test and y_esperado_binary are ndarrays
-y_test = y_test.flatten()  # Ensure y_test is a 1D array
-# Ensure y_esperado_binary is a 1D array
-y_esperado_binary = y_esperado_binary.flatten()
-
-# Confusion Matrix
-cm = confusion_matrix(y_test, y_esperado_binary, labels=[0, 1])
-
-# True Positives, True Negatives, False Positives, False Negatives
-tn, fp, fn, tp = cm.ravel()
-
-# Accuracy
-accuracy = accuracy_score(y_test, y_esperado_binary)
-
-print("True Positives:", tp)
-print("True Negatives:", tn)
-print("False Positives:", fp)
-print("False Negatives:", fn)
-print("Accuracy:", accuracy)
-# OLD MAIN
-
-
-# integer_columns = [0, 2, 4, 10, 11, 12]
-# nominal_columns = [col for col in df.columns if col not in integer_columns]
-
-# # preenche valores vazios de x com o valor mais comum da base naquela coluna
-# df.fillna(df.mode().iloc[0], inplace=True)
-
-
-# # normalização das colunas nominais (transformando-as em valores numericos)
-# label_encoder = LabelEncoder()
-# for col in nominal_columns:
-#     df[col] = label_encoder.fit_transform(df[col])
-
-# # df é um array de N valores numericos
-# df = df.values
-
-# # normalizando conjunto de dados
-# scaler = StandardScaler()
-# df = scaler.fit_transform(df)
-
-# y = y['income'].isin(['>50K', '<=50K']).astype(int)
-
-# # obtendo dados para calculo de metricas de desempenho
-# # valores reais esperados
-
-# # conveerte tabela de y em vetor de vetores com os valores de y
-# y = y.values.reshape(-1, 1)
-# y_true = y
-
-# # Inicializando e treinando o mlp
-# X_train, X_test, y_train, y_test = train_test_split(
-#     df, y)
-
-# # y_train, y_test = y_train.values.reshape(-1, 1), y_test.values.reshape(-1, 1)
-
-# # treina rede neural antes de calcular valores previstos
-# mlp = MLP(dim_entrada=14, dim_oculta=10, dim_saida=1, taxa_aprendizado=0.1)
-
-# # treinamento da porção da base de entrada
-# mlp.fit(X_train, y_train, epocas=1000)
-
-# # Realizando previsões no conjunto de teste
-# # y_esperado deve ser um array de arrays de valores entre 0 e 1
-# y_esperado = mlp.predicao(df)
-
-# # filtra probabilidades entre 0 e 1 sendo 1 > 0.5 e 0 <= 0.5
-# y_esperado_binary = (y_esperado > 0.5).astype(int)
-
-# # conta quantidade de valores esperados iguais os valores de base
-# accuracy = np.mean(y_esperado_binary == y_true)
-
-# # conf_matrix = confusion_matrix(y_true, y_esperado_binary)
-
-
-# print(X_test.shape, y_test.shape)
-
-mlp.plot_decision_surface(X_test, y_test)
+# avaliar modelo
+accuracy = model.evaluate(X_test, y_test)[1]
+print(f"Accuracy: {accuracy}")
