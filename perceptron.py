@@ -198,13 +198,10 @@ y_labels = df['salary']
 x_data = df.drop('salary', axis=1)
 x_data = x_data.astype(float).values
 
-# separar conjunto de treino e conjunto de teste
-X_train, X_test, y_train, y_test = train_test_split(
-    x_data, y_labels, test_size=0.5, shuffle=True)
 
 # inicializar modelo perceptron e seus parametros
 perceptron = Perceptron(taxa_aprendizado=0.05,
-                        num_iteracoes=30, tolerancia=50)
+                        num_iteracoes=100, tolerancia=50)
 
 
 # treina rede neural antes de calcular valores previstos
