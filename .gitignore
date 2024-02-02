@@ -2,3 +2,4 @@ venv
 results.csv
 travelling_salesman.py
 original_tsp
+old-dataset
