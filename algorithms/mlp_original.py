@@ -98,15 +98,15 @@ class MLP:
         plt.xlim(xx.min(), xx.max())
         plt.ylim(yy.min(), yy.max())
         plt.title("Superfície de Decisão da Rede MLP")
-        plt.xlabel("Feature 1")
-        plt.ylabel("Feature 2")
+        plt.xlabel("Age (Normalized)")
+        plt.ylabel("Capital Gain (Normalized)")
         plt.show()
 
 
 # Programa Principal
 # Gerando dados de exemplo
 # X, y = make_classification(n_samples=200, class_sep=0.5, n_features=2, n_redundant=0, n_informative=2, random_state=0, n_clusters_per_class=2)
-X, y = make_moons(n_samples=100, shuffle=True, noise=0.5, random_state=None)
+X, y = make_moons(n_samples=1000, shuffle=True, noise=0.5, random_state=None)
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42)
@@ -115,8 +115,8 @@ X_train, X_test, y_train, y_test = train_test_split(
 y_train, y_test = y_train.reshape(-1, 1), y_test.reshape(-1, 1)
 
 # Criando e treinando a MLP
-mlp = MLP(dim_entrada=2, dim_oculta=10, dim_saida=1, taxa_aprendizado=0.1)
-mlp.fit(X_train, y_train, epocas=1000)
+mlp = MLP(dim_entrada=2, dim_oculta=12, dim_saida=1, taxa_aprendizado=0.05)
+mlp.fit(X_train, y_train, epocas=100)
 
 # Realizando previsões no conjunto de teste
 saida_prevista = mlp.predicao(X_test)
