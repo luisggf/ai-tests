@@ -1,9 +1,10 @@
-Claro, aqui está um exemplo de README.md para o seu projeto [ai-tests](https://github.com/luisggf/ai-tests):
 
 ```markdown
 # AI Tests
 
-Este projeto tem como objetivo explorar e testar diferentes modelos de inteligência artificial e técnicas de machine learning. Através de diversos experimentos, buscamos entender melhor como essas tecnologias funcionam e como podem ser aplicadas em diferentes contextos.
+Este projeto tem como objetivo explorar e testar diferentes modelos de inteligência artificial e técnicas de machine learning.
+Através de diversos experimentos, buscamos entender melhor como essas tecnologias funcionam e como podem ser aplicadas em
+diferentes contextos.
 
 ## Tecnologias Utilizadas
 
