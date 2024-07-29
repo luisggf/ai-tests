@@ -1,5 +1,4 @@
 
-```markdown
 # AI Tests
 
 Este projeto tem como objetivo explorar e testar diferentes modelos de inteligência artificial e técnicas de machine learning.
